@@ -40,11 +40,6 @@ public class DelegateSecurityManager extends SecurityManager {
 	}
 
 	@Override
-	public boolean getInCheck() {
-		return getSecurityManager().getInCheck();
-	}
-
-	@Override
 	public Object getSecurityContext() {
 		return getSecurityManager().getSecurityContext();
 	}

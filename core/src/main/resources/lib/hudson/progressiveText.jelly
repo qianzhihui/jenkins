@@ -58,7 +58,7 @@ THE SOFTWARE.
 	          method: "post",
 	          parameters: {"start":e.fetchedBytes},
             requestHeaders: headers,
-	          onComplete: function(rsp,_) {
+	          onComplete: function(rsp,a) {
               <!-- append text and do autoscroll if applicable-->
               var stickToBottom = scroller.isSticking();
               var text = rsp.responseText;

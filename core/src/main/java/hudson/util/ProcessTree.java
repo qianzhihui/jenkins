@@ -649,8 +649,8 @@ public abstract class ProcessTree implements Iterable<OSProcess>, IProcessTree, 
         @Override
         public OSProcess get(Process proc) {
             try {
-                return get((Integer) UnixReflection.PID_FIELD.get(proc));
-            } catch (IllegalAccessException e) { // impossible
+                return get((int)proc.pid());
+            } catch (Exception e) { // impossible
                 IllegalAccessError x = new IllegalAccessError();
                 x.initCause(e);
                 throw x;
@@ -758,56 +758,14 @@ public abstract class ProcessTree implements Iterable<OSProcess>, IProcessTree, 
      * Reflection used in the Unix support.
      */
     private static final class UnixReflection {
-        /**
-         * Field to access the PID of the process.
-         */
-        private static final Field PID_FIELD;
 
-        /**
-         * Method to destroy a process, given pid.
-         *
-         * Looking at the JavaSE source code, this is using SIGTERM (15)
-         */
-        private static final Method DESTROY_PROCESS;
-
-        static {
-            try {
-                Class<?> clazz = Class.forName("java.lang.UNIXProcess");
-                PID_FIELD = clazz.getDeclaredField("pid");
-                PID_FIELD.setAccessible(true);
-
-                if (isPreJava8()) {
-                    DESTROY_PROCESS = clazz.getDeclaredMethod("destroyProcess",int.class);
-                } else {
-                    DESTROY_PROCESS = clazz.getDeclaredMethod("destroyProcess",int.class, boolean.class);
-                }
-                DESTROY_PROCESS.setAccessible(true);
-            } catch (ClassNotFoundException e) {
-                LinkageError x = new LinkageError();
-                x.initCause(e);
-                throw x;
-            } catch (NoSuchFieldException e) {
-                LinkageError x = new LinkageError();
-                x.initCause(e);
-                throw x;
-            } catch (NoSuchMethodException e) {
-                LinkageError x = new LinkageError();
-                x.initCause(e);
-                throw x;
+        private static void destroy(int pid) throws IllegalAccessException, InvocationTargetException {
+            try{
+                Process sub = Runtime.getRuntime().exec("sudo kill " + pid + " -9");
+                LOGGER.log(Level.INFO,"关闭进程时创建了Process对象："+sub);
+            }catch (Exception e){
+                LOGGER.log(Level.WARNING,"关闭进程失败");
             }
-        }
-
-        public static void destroy(int pid) throws IllegalAccessException, InvocationTargetException {
-            if (isPreJava8()) {
-                DESTROY_PROCESS.invoke(null, pid);
-            } else {
-                DESTROY_PROCESS.invoke(null, pid, false);
-            }
-        }
-
-        private static boolean isPreJava8() {
-            int javaVersionAsAnInteger = Integer.parseInt(System.getProperty("java.version").replaceAll("\\.", "").replaceAll("_", "").substring(0, 2));
-            return javaVersionAsAnInteger < 18;
         }
     }
 
@@ -1189,18 +1147,18 @@ public abstract class ProcessTree implements Iterable<OSProcess>, IProcessTree, 
                 kinfo_proc_ppid_offset = kinfo_proc_ppid_offset_32;
             }
             try {
-                IntByReference _ = new IntByReference(sizeOfInt);
+                IntByReference a = new IntByReference(sizeOfInt);
                 IntByReference size = new IntByReference(sizeOfInt);
                 Memory m;
                 int nRetry = 0;
                 while(true) {
                     // find out how much memory we need to do this
-                    if(LIBC.sysctl(MIB_PROC_ALL,3, NULL, size, NULL, _)!=0)
+                    if(LIBC.sysctl(MIB_PROC_ALL,3, NULL, size, NULL, a )!=0)
                         throw new IOException("Failed to obtain memory requirement: "+LIBC.strerror(Native.getLastError()));
 
                     // now try the real call
                     m = new Memory(size.getValue());
-                    if(LIBC.sysctl(MIB_PROC_ALL,3, m, size, NULL, _)!=0) {
+                    if(LIBC.sysctl(MIB_PROC_ALL,3, m, size, NULL, a )!=0) {
                         if(Native.getLastError()==ENOMEM && nRetry++<16)
                             continue; // retry
                         throw new IOException("Failed to call kern.proc.all: "+LIBC.strerror(Native.getLastError()));
@@ -1260,14 +1218,14 @@ public abstract class ProcessTree implements Iterable<OSProcess>, IProcessTree, 
                     arguments = new ArrayList<String>();
                     envVars = new EnvVars();
 
-                    IntByReference _ = new IntByReference();
+                    IntByReference a = new IntByReference();
 
                     IntByReference argmaxRef = new IntByReference(0);
                     IntByReference size = new IntByReference(sizeOfInt);
 
                     // for some reason, I was never able to get sysctlbyname work.
-//        if(LIBC.sysctlbyname("kern.argmax", argmaxRef.getPointer(), size, NULL, _)!=0)
-                    if(LIBC.sysctl(new int[]{CTL_KERN,KERN_ARGMAX},2, argmaxRef.getPointer(), size, NULL, _)!=0)
+//        if(LIBC.sysctlbyname("kern.argmax", argmaxRef.getPointer(), size, NULL, a )!=0)
+                    if(LIBC.sysctl(new int[]{CTL_KERN,KERN_ARGMAX},2, argmaxRef.getPointer(), size, NULL, a )!=0)
                         throw new IOException("Failed to get kern.argmax: "+LIBC.strerror(Native.getLastError()));
 
                     int argmax = argmaxRef.getValue();
@@ -1305,7 +1263,7 @@ public abstract class ProcessTree implements Iterable<OSProcess>, IProcessTree, 
                     }
                     StringArrayMemory m = new StringArrayMemory(argmax);
                     size.setValue(argmax);
-                    if(LIBC.sysctl(new int[]{CTL_KERN,KERN_PROCARGS2,pid},3, m, size, NULL, _)!=0)
+                    if(LIBC.sysctl(new int[]{CTL_KERN,KERN_PROCARGS2,pid},3, m, size, NULL, a )!=0)
                         throw new IOException("Failed to obtain ken.procargs2: "+LIBC.strerror(Native.getLastError()));
 
 

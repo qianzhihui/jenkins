@@ -234,7 +234,7 @@ public class ListViewTest {
         ListView v = new ListView("v", j.jenkins);
         v.add(p);
         j.jenkins.addView(v);
-        try (ACLContext _ = ACL.as(User.get("alice"))) {
+        try (ACLContext a = ACL.as(User.get("alice"))) {
             p.renameTo("p2");
         }
         assertEquals(Collections.singletonList(p), v.getItems());
