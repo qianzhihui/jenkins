@@ -99,7 +99,7 @@ THE SOFTWARE.
     <access-modifier-annotation.version>${access-modifier.version}</access-modifier-annotation.version> <!-- differing only where needed for timestamped snapshots -->
     <access-modifier-checker.version>${access-modifier.version}</access-modifier-checker.version>
 
-    <java.level>8</java.level>
+    <java.level>10</java.level>
 
     <changelog.url>https://jenkins.io/changelog</changelog.url>
 
@@ -555,8 +555,8 @@ THE SOFTWARE.
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
-          <source>1.${java.level}</source>
-          <target>1.${java.level}</target>
+          <source>${java.level}</source>
+          <target>${java.level}</target>
           <!-- default reuseCreated is more performant
           feel free to uncomment if you have any issues on your platform
           <compilerReuseStrategy>alwaysNew</compilerReuseStrategy>
@@ -645,7 +645,7 @@ THE SOFTWARE.
             <artifactId>maven-sorcerer-plugin</artifactId>
             <version>${sorcerer.version}</version>
             <configuration>
-              <source>1.${java.level}</source>
+              <source>${java.level}</source>
             </configuration>
           </plugin>
         </plugins>
@@ -657,7 +657,7 @@ THE SOFTWARE.
             <artifactId>maven-sorcerer-plugin</artifactId>
             <version>${sorcerer.version}</version>
             <configuration>
-              <source>1.${java.level}</source>
+              <source>${java.level}</source>
             </configuration>
           </plugin>
         </plugins>
